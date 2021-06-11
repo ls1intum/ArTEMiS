@@ -24,6 +24,7 @@ import de.tum.in.www1.artemis.domain.enumeration.Language;
 import de.tum.in.www1.artemis.domain.modeling.ModelingExercise;
 import de.tum.in.www1.artemis.domain.modeling.ModelingSubmission;
 import de.tum.in.www1.artemis.domain.participation.StudentParticipation;
+import de.tum.in.www1.artemis.service.FileUploadSubmissionExportService;
 import de.tum.in.www1.artemis.util.ModelFactory;
 import de.tum.in.www1.artemis.web.rest.dto.SubmissionExportOptionsDTO;
 
@@ -228,7 +229,7 @@ public class SubmissionExportIntegrationTest extends AbstractSpringIntegrationBa
         request.postWithResponseBodyFile("/api/text-exercises/" + textExercise.getId() + "/export-submissions", baseExportOptions, HttpStatus.BAD_REQUEST);
         mockedFiles.close();
     }
-
+    
     private void assertZipContains(File file, Submission... submissions) {
         try {
             ZipFile zip = new ZipFile(file);

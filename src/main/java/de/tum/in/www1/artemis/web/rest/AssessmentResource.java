@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 
 import de.tum.in.www1.artemis.domain.*;
+import de.tum.in.www1.artemis.domain.enumeration.FeedbackType;
 import de.tum.in.www1.artemis.domain.participation.StudentParticipation;
 import de.tum.in.www1.artemis.repository.*;
 import de.tum.in.www1.artemis.security.Role;
@@ -40,6 +41,7 @@ public abstract class AssessmentResource {
     protected final ExampleSubmissionRepository exampleSubmissionRepository;
 
     protected final SubmissionRepository submissionRepository;
+
 
     public AssessmentResource(AuthorizationCheckService authCheckService, UserRepository userRepository, ExerciseRepository exerciseRepository, AssessmentService assessmentService,
             ResultRepository resultRepository, ExamService examService, WebsocketMessagingService messagingService, ExampleSubmissionRepository exampleSubmissionRepository,
@@ -111,15 +113,31 @@ public abstract class AssessmentResource {
             return forbidden("assessment", "assessmentSaveNotAllowed", "The user is not allowed to override the assessment");
         }
 
-        Result result = assessmentService.saveManualAssessment(submission, feedbackList, resultId);
+        if (exercise instanceof ProgrammingExercise programmingExercise) {
+            if (!programmingExercise.areManualResultsAllowed()) {
+                return forbidden("assessment", "assessmentSaveNotAllowed", "Creating manual results is disabled for this exercise!");
+            }
+            // All not automatically generated result must have a detail text
+            // TODO: put this check above
+            else if (!feedbackList.isEmpty()
+                    && feedbackList.stream().anyMatch(feedback -> feedback.getType() == FeedbackType.MANUAL_UNREFERENCED && feedback.getDetailText() == null)) {
+                throw new BadRequestAlertException("In case tutor feedback is present, a feedback detail text is mandatory.", "programmingAssessment", "feedbackDetailTextNull");
+            }
+            else if (!feedbackList.isEmpty() && feedbackList.stream().anyMatch(feedback -> feedback.getCredits() == null)) {
+                throw new BadRequestAlertException("In case feedback is present, a feedback must contain points.", "programmingAssessment", "feedbackCreditsNull");
+            }
+        }
+
+        Result result = assessmentService.saveManualAssessment(submission, feedbackList, resultId, exercise);
         if (submit) {
-            result = assessmentService.submitManualAssessment(result.getId(), exercise, submission.getSubmissionDate());
+            result = assessmentService.submitManualAssessment(result.getId());
         }
         var participation = result.getParticipation();
         // remove information about the student for tutors to ensure double-blind assessment
         if (!isAtLeastInstructor) {
             participation.filterSensitiveInformation();
         }
+
         if (submit && (participation.getExercise().getAssessmentDueDate() == null || participation.getExercise().getAssessmentDueDate().isBefore(ZonedDateTime.now()))) {
             messagingService.broadcastNewResult(result.getParticipation(), result);
         }
@@ -140,10 +158,10 @@ public abstract class AssessmentResource {
         // as parameter resultId is not set, we use the latest Result, if no latest Result exists, we use null
         Result result;
         if (submission.getLatestResult() == null) {
-            result = assessmentService.saveManualAssessment(submission, feedbacks, null);
+            result = assessmentService.saveManualAssessment(submission, feedbacks, null, exercise);
         }
         else {
-            result = assessmentService.saveManualAssessment(submission, feedbacks, submission.getLatestResult().getId());
+            result = assessmentService.saveManualAssessment(submission, feedbacks, submission.getLatestResult().getId(), exercise);
         }
         return ResponseEntity.ok(result);
     }

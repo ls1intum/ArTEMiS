@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 import de.tum.in.www1.artemis.domain.*;
 import de.tum.in.www1.artemis.domain.assessment.dashboard.ResultCount;
 import de.tum.in.www1.artemis.domain.enumeration.AssessmentType;
+import de.tum.in.www1.artemis.domain.enumeration.FeedbackType;
 import de.tum.in.www1.artemis.domain.leaderboard.tutor.TutorLeaderboardAssessments;
 import de.tum.in.www1.artemis.web.rest.dto.DueDateStat;
 import de.tum.in.www1.artemis.web.rest.errors.EntityNotFoundException;
@@ -507,36 +508,58 @@ public interface ResultRepository extends JpaRepository<Result, Long> {
     }
 
     /**
-     * submit the result means it is saved with a calculated score, result string and a completion date.
+     * submit the result means it is saved with a completion date.
      * @param result the result which should be set to submitted
-     * @param exercise the exercises to which the result belongs, which is needed to get points and to determine if the result is rated or not
      * @return the saved result
      */
-    default Result submitResult(Result result, Exercise exercise) {
+    default Result submitResult(Result result) {
+        // Workaround to prevent the assessor turning into a proxy object after saving
+        var assessor = result.getAssessor();
+
+        result.setCompletionDate(ZonedDateTime.now());
+        result = save(result);
+        result.setAssessor(assessor);
+        return result;
+    }
+
+    /**
+     * save the result means to save it with a score, result string, assessor and if it is rated
+     * @param result
+     * @param exercise
+     * @return the saved result
+     */
+    default Result saveResult(Result result, Exercise exercise) {
+
+        boolean isProgrammingExercise = exercise instanceof ProgrammingExercise;
         double maxPoints = exercise.getMaxPoints();
         double bonusPoints = Optional.ofNullable(exercise.getBonusPoints()).orElse(0.0);
 
         // Exam results and manual results of programming exercises are always to rated
-        if (exercise.isExamExercise() || exercise instanceof ProgrammingExercise) {
+        if (exercise.isExamExercise() || isProgrammingExercise) {
             result.setRated(true);
         }
         else {
             result.setRatedIfNotExceeded(exercise.getDueDate(), result.getSubmission().getSubmissionDate());
         }
 
-        result.setCompletionDate(ZonedDateTime.now());
         // Take bonus points into account to achieve a result score > 100%
-        double calculatedPoints = calculateTotalPoints(result.getFeedbacks());
+        double calculatedPoints = isProgrammingExercise ? calculateTotalPointsForProgrammingExercise(result) : calculateTotalPoints(result.getFeedbacks());
         double totalPoints = constrainToRange(calculatedPoints, maxPoints + bonusPoints);
         // Set score and resultString according to maxPoints, to establish results with score > 100%
         result.setScore(totalPoints, maxPoints);
-        result.setResultString(totalPoints, maxPoints);
+
+        if (isProgrammingExercise) {
+            result.createResultStringForProgramming(totalPoints, maxPoints);
+        }
+        else {
+            result.setResultString(totalPoints, maxPoints);
+        }
 
         // Workaround to prevent the assessor turning into a proxy object after saving
         var assessor = result.getAssessor();
-        result = save(result);
-        result.setAssessor(assessor);
-        return result;
+        var resultNew = save(result);
+        resultNew.setAssessor(assessor);
+        return resultNew;
     }
 
     /**
@@ -573,6 +596,54 @@ public interface ResultRepository extends JpaRepository<Result, Long> {
             }
         }
         return totalPoints;
+    }
+
+    /**
+     * Calculates the total score for programming exercises.
+     * @param result with information about feedback and exercise
+     * @return calculated totalScore
+     */
+    default double calculateTotalPointsForProgrammingExercise(Result result) {
+        double totalScore = 0.0;
+        double scoreAutomaticTests = 0.0;
+        ProgrammingExercise programmingExercise = (ProgrammingExercise) result.getParticipation().getExercise();
+        List<Feedback> assessments = result.getFeedbacks();
+        var gradingInstructions = new HashMap<Long, Integer>(); // { instructionId: noOfEncounters }
+
+        for (Feedback feedback : assessments) {
+            if (feedback.getGradingInstruction() != null) {
+                totalScore = feedback.computeTotalScore(totalScore, gradingInstructions);
+            }
+            else {
+                /*
+                 * In case no structured grading instruction was applied on the assessment model we just sum the feedback credit. We differentiate between automatic test and
+                 * automatic SCA feedback (automatic test feedback has to be capped)
+                 */
+                if (feedback.getType() == FeedbackType.AUTOMATIC && !feedback.isStaticCodeAnalysisFeedback()) {
+                    scoreAutomaticTests += Objects.requireNonNullElse(feedback.getCredits(), 0.0);
+                }
+                else {
+                    totalScore += Objects.requireNonNullElse(feedback.getCredits(), 0.0);
+                }
+            }
+        }
+        /*
+         * Calculated score from automatic test feedbacks, is capped to max points + bonus points, see also see {@link ProgrammingExerciseGradingService#updateScore}
+         */
+        double maxPoints = programmingExercise.getMaxPoints() + Optional.ofNullable(programmingExercise.getBonusPoints()).orElse(0.0);
+        if (scoreAutomaticTests > maxPoints) {
+            scoreAutomaticTests = maxPoints;
+        }
+        totalScore += scoreAutomaticTests;
+        // Make sure to not give negative points
+        if (totalScore < 0) {
+            totalScore = 0;
+        }
+        // Make sure to not give more than maxPoints
+        if (totalScore > maxPoints) {
+            totalScore = maxPoints;
+        }
+        return totalScore;
     }
 
     /**
