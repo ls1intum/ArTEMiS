@@ -133,21 +133,22 @@
                                         [row]="row"
                                         class="ml-2"
                                     ></jhi-remove-auxiliary-repository-button>
-                                    <span *ngIf="isEdit">
-                                        <fa-icon
-                                            [icon]="'exclamation-triangle'"
-                                            class="text-warning mr-1"
-                                            ngbTooltip="{{ 'artemisApp.programmingExercise.auxiliaryRepository.warning' | artemisTranslate }}"
-                                        ></fa-icon>
-                                        <span jhiTranslate="artemisApp.programmingExercise.auxiliaryRepository.warning"
-                                            >This Auxiliary Repository needs to be manually added to the VCS and the buildplan</span
-                                        >
-                                    </span>
                                 </div>
                             </ng-template>
                         </ngx-datatable-column>
                     </ngx-datatable>
-                    <jhi-add-auxiliary-repository-button [programmingExercise]="programmingExercise" class="ml-2"></jhi-add-auxiliary-repository-button>
+                    <jhi-add-auxiliary-repository-button [programmingExercise]="programmingExercise" class="ml-2" (click)="computeInvalidWarnings()">
+                    </jhi-add-auxiliary-repository-button>
+                    <span *ngIf="isEdit && (programmingExercise.auxiliaryRepositories?.length || 0) > numberOfExistingAuxiliaryRepositories">
+                        <fa-icon
+                            [icon]="'exclamation-triangle'"
+                            class="text-warning mr-1"
+                            ngbTooltip="{{ 'artemisApp.programmingExercise.auxiliaryRepository.warning' | artemisTranslate }}"
+                        ></fa-icon>
+                        <span jhiTranslate="artemisApp.programmingExercise.auxiliaryRepository.warning">
+                            This Auxiliary Repository needs to be manually added to the VCS and the buildplan
+                        </span>
+                    </span>
                 </div>
                 <div *ngIf="!isExamMode" class="form-group-narrow position-relative">
                     <div>
@@ -555,7 +556,7 @@
                 </div>
                 <div class="form-group-narrow" *ngIf="programmingExercise.id && !isImport && !isExamMode">
                     <label class="form-control-label" jhiTranslate="artemisApp.exercise.notificationText" for="field_notification_text">Notification Text</label>
-                    <input minlength="3" type="text" class="form-control" name="notificationtText" id="field_notification_text" [(ngModel)]="notificationText" />
+                    <input minlength="3" type="text" class="form-control" name="notificationText" id="field_notification_text" [(ngModel)]="notificationText" />
                 </div>
             </div>
             <div>
@@ -572,15 +573,23 @@
                     (click)="save()"
                 >
                 </jhi-button>
-                <span *ngIf="isEdit && invalidWarnings">
-                    <fa-icon
-                        [icon]="'exclamation-triangle'"
-                        class="text-warning mr-1"
-                        ngbTooltip="{{ 'artemisApp.programmingExercise.auxiliaryRepository.warning' | artemisTranslate }}"
-                    ></fa-icon>
-                    <span jhiTranslate="artemisApp.programmingExercise.auxiliaryRepository.warning"
-                        >This Auxiliary Repository needs to be manually added to the VCS and the buildplan</span
-                    >
+                <ng-template #warningTranslate>
+                    <div *ngFor="let warning of invalidWarnings">
+                        <p
+                            *ngIf="(warning.translateValues | json) != '{}'"
+                            jhiTranslate="{{ warning.translateKey }}"
+                            [translateValues]="{ auxRepoName: warning.translateValues.auxRepoName || '' }"
+                        ></p>
+                        <p *ngIf="(warning.translateValues | json) == '{}'" jhiTranslate="{{ warning.translateKey }}"></p>
+                    </div>
+                </ng-template>
+                <span *ngIf="isEdit && (programmingExercise.auxiliaryRepositories?.length || 0) > numberOfExistingAuxiliaryRepositories">
+                    <span [ngbTooltip]="warningTranslate">
+                        <fa-icon [icon]="'exclamation-triangle'" class="text-warning mr-1"></fa-icon>
+                        <span jhiTranslate="artemisApp.programmingExercise.auxiliaryRepository.warning"
+                            >Auxiliary Repositories need to be manually added to the VCS and the build plan</span
+                        >
+                    </span>
                 </span>
             </div>
         </form>
