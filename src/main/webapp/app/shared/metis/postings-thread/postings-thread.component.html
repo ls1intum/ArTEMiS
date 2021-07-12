@@ -1,0 +1,41 @@
+<div class="row mb-2">
+    <div class="col-12">
+        <jhi-post
+            [posting]="post"
+            [user]="user"
+            [isAtLeastTutorInCourse]="isAtLeastTutorInCourse"
+            [courseId]="courseId"
+            [existingPostTags]="existingPostTags"
+            (onDelete)="onDelete.emit($event)"
+            (toggledAnswersChange)="toggleAnswers()"
+            (interactPost)="interactPost($event)"
+        ></jhi-post>
+        <div class="row">
+            <div class="col-12">
+                <ng-container *ngIf="toggledAnswers">
+                    <jhi-answer-post
+                        *ngFor="let answerPost of sortedAnswerPosts"
+                        [posting]="answerPost"
+                        [user]="user"
+                        [isAtLeastTutorInCourse]="isAtLeastTutorInCourse"
+                        [courseId]="courseId"
+                        (onDelete)="deleteAnswerPost($event)"
+                        (toggleApproveChange)="toggleApprove($event)"
+                    ></jhi-answer-post>
+                </ng-container>
+                <!-- new answer -->
+                <button *ngIf="toggledAnswers || sortedAnswerPosts.length === 0" class="btn btn-sm btn-outline-secondary m-1" (click)="createEditModal.open()">
+                    <fa-icon [icon]="'comments'"></fa-icon>
+                    <span class="d-none d-md-inline">{{ 'artemisApp.metis.answerNow' | artemisTranslate }}</span>
+                </button>
+                <jhi-answer-post-create-edit-modal
+                    #createEditModal
+                    [posting]="createEmptyAnswerPost()"
+                    [courseId]="courseId"
+                    (onCreate)="onCreateAnswerPost($event)"
+                ></jhi-answer-post-create-edit-modal>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="line"></div>

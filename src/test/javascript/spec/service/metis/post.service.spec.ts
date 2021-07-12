@@ -2,11 +2,11 @@ import { fakeAsync, getTestBed, TestBed, tick } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import * as chai from 'chai';
 import { take } from 'rxjs/operators';
-import { PostService } from 'app/overview/postings/post/post.service';
 import { Post } from 'app/entities/metis/post.model';
 import { Course } from 'app/entities/course.model';
 import { TextExercise } from 'app/entities/text-exercise.model';
 import { Lecture } from 'app/entities/lecture.model';
+import { PostService } from 'app/shared/metis/post/post.service';
 
 const expect = chai.expect;
 
@@ -83,7 +83,7 @@ describe('Post Service', () => {
         }));
 
         it('should delete a Post', fakeAsync(() => {
-            service.delete(1, 123).subscribe((resp) => expect(resp.ok).to.be.true);
+            service.delete(1, elemDefault).subscribe((resp) => expect(resp.ok).to.be.true);
 
             const req = httpMock.expectOne({ method: 'DELETE' });
             req.flush({ status: 200 });

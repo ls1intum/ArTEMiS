@@ -1,0 +1,23 @@
+<div class="row justify-content-between my-1">
+    <div class="col-auto">
+        <span class="posting-header">{{ posting.author!.name }} • {{ posting.creationDate | artemisDate: 'short' }}</span>
+        <fa-icon
+            *ngIf="isAtLeastTutorInCourse || isAuthorOfPosting"
+            size="xs"
+            class="me-0.5 clickable icon"
+            [ngbTooltip]="'artemisApp.metis.editPosting' | artemisTranslate"
+            container="body"
+            [icon]="'pencil-alt'"
+            (click)="createEditModal.open()"
+        ></fa-icon>
+        <jhi-answer-post-create-edit-modal #createEditModal [posting]="posting" [courseId]="courseId"></jhi-answer-post-create-edit-modal>
+        <jhi-confirm-icon
+            *ngIf="isAtLeastTutorInCourse || isAuthorOfPosting"
+            iconSize="xs"
+            (confirmEvent)="deletePosting()"
+            [ngClass]="'me-1 clickable icon'"
+            [initialTooltip]="'artemisApp.metis.deleteAnswer' | artemisTranslate"
+            [confirmTooltip]="'artemisApp.metis.confirmDeleteAnswer' | artemisTranslate"
+        ></jhi-confirm-icon>
+    </div>
+</div>

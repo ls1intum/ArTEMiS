@@ -1,0 +1,128 @@
+@import 'src/main/webapp/content/scss/artemis-variables';
+
+$background-color: #353d47;
+$label-color: #6a737d;
+
+.postings-container {
+    display: flex;
+    height: 100%;
+    margin-left: auto;
+}
+
+.icon {
+    color: $label-color;
+    &.vote-active {
+        color: $background-color;
+    }
+}
+
+.expanded-posts {
+    width: 30vw;
+
+    .draggable-left {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 15px;
+    }
+
+    .card {
+        width: inherit;
+        min-width: 200px;
+
+        .card-header {
+            display: inline-flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: $background-color;
+            cursor: pointer;
+
+            .card-title {
+                display: flex;
+            }
+
+            .row > .col-auto:last-child {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+        }
+    }
+}
+
+.reaction {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+
+    .plus {
+        font-size: 0.5em;
+    }
+}
+
+.post-tag {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background-color: darkblue;
+}
+
+.line {
+    width: auto;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.1);
+    content: ' ';
+}
+
+.approved-badge {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background-color: green;
+}
+
+.not-approved-badge {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background-color: lightgray;
+}
+
+.collapsed-postings {
+    width: 50px;
+    justify-content: space-between;
+    flex-flow: column nowrap;
+    background-color: $background-color;
+    margin-left: auto;
+    cursor: pointer;
+
+    span {
+        writing-mode: vertical-rl;
+        margin: auto;
+    }
+
+    fa-icon {
+        display: flex;
+        justify-content: center;
+        padding: 15px 0;
+    }
+}
+
+.posting-header {
+    font-size: 12px;
+}
+
+.answer-post {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: 4px;
+}
+
+@media screen and (max-width: 992px) {
+    .expanded-posts {
+        width: 94vw;
+
+        .draggable-left {
+            display: none;
+        }
+    }
+}

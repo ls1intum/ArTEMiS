@@ -3,7 +3,7 @@ import * as sinonChai from 'sinon-chai';
 import { ActivatedRoute } from '@angular/router';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TranslateModule } from '@ngx-translate/core';
-import { PostComponent } from 'app/overview/postings/post/post.component';
+import { PostComponent } from 'app/shared/metis/post/post.component';
 import { AnswerPost } from 'app/entities/metis/answer-post.model';
 import { Post } from 'app/entities/metis/post.model';
 import { User } from 'app/core/user/user.model';
@@ -11,12 +11,13 @@ import { ArtemisTestModule } from '../../test.module';
 import { MarkdownEditorComponent } from 'app/shared/markdown-editor/markdown-editor.component';
 import { MockDirective, MockPipe } from 'ng-mocks';
 import { ConfirmIconComponent } from 'app/shared/confirm-icon/confirm-icon.component';
-import { PostVotesComponent } from 'app/overview/postings/post-votes/post-votes.component';
+import { PostVotesComponent } from 'app/shared/metis/post/post-votes/post-votes.component';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { HtmlForMarkdownPipe } from 'app/shared/pipes/html-for-markdown.pipe';
 import { ArtemisDatePipe } from 'app/shared/pipes/artemis-date.pipe';
 import { ArtemisTranslatePipe } from 'app/shared/pipes/artemis-translate.pipe';
-import { PostingsButtonComponent } from 'app/overview/postings/postings-button/postings-button.component';
+import { PostingsButtonComponent } from 'app/shared/metis/postings-button/postings-button.component';
+import { PostingsMarkdownEditorComponent } from 'app/shared/metis/postings-markdown-editor/postings-markdown-editor.component';
 
 chai.use(sinonChai);
 const expect = chai.expect;
@@ -75,6 +76,7 @@ describe('PostComponent', () => {
                 MockDirective(PostVotesComponent),
                 MockDirective(NgbTooltip),
                 MockDirective(PostingsButtonComponent),
+                MockDirective(PostingsMarkdownEditorComponent),
                 MockPipe(ArtemisDatePipe),
                 MockPipe(ArtemisTranslatePipe),
                 // Don't mock this since we want to test this pipe, too
@@ -103,26 +105,26 @@ describe('PostComponent', () => {
     });
 
     it('should toggle edit mode and reset editor Text', () => {
-        component.post = post;
+        component.posting = post;
         component.isEditMode = true;
-        component.editText = 'test';
+        component.content = 'test';
         component.toggleEditMode();
-        expect(component.editText).to.deep.equal('post');
+        expect(component.content).to.deep.equal('post');
         expect(component.isEditMode).to.be.false;
         component.toggleEditMode();
         expect(component.isEditMode).to.be.true;
     });
 
     it('should update content', () => {
-        component.post = post;
+        component.posting = post;
         component.isEditMode = true;
-        component.editText = 'test';
-        component.savePost();
-        expect(component.post.content).to.deep.equal('test');
+        component.content = 'test';
+        component.updatePosting();
+        expect(component.posting.content).to.deep.equal('test');
     });
 
     it('should not display malicious html in post texts', () => {
-        component.post = maliciousPost;
+        component.posting = maliciousPost;
         componentFixture.detectChanges();
 
         const text = componentFixture.debugElement.nativeElement.querySelector('#content');
