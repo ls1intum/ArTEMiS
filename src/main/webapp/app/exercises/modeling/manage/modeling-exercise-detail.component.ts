@@ -27,6 +27,7 @@ export class ModelingExerciseDetailComponent implements OnInit, OnDestroy {
     gradingInstructions: SafeHtml;
     sampleSolution: SafeHtml;
     sampleSolutionUML: UMLModel;
+    numberOfClusters: number;
 
     readonly ExerciseType = ExerciseType;
     readonly moment = moment;
@@ -64,6 +65,7 @@ export class ModelingExerciseDetailComponent implements OnInit, OnDestroy {
         this.statisticsService.getExerciseStatistics(id).subscribe((statistics: ExerciseManagementStatisticsDto) => {
             this.doughnutStats = statistics;
         });
+        this.countModelClusters(id);
     }
 
     downloadAsPDf() {
@@ -84,7 +86,9 @@ export class ModelingExerciseDetailComponent implements OnInit, OnDestroy {
     }
 
     registerChangeInModelingExercises() {
-        this.eventSubscriber = this.eventManager.subscribe('modelingExerciseListModification', () => this.load(this.modelingExercise.id!));
+        this.eventSubscriber = this.eventManager.subscribe('modelingExerciseListModification', () => {
+            this.load(this.modelingExercise.id!);
+        });
     }
 
     buildModelClusters() {
@@ -108,6 +112,19 @@ export class ModelingExerciseDetailComponent implements OnInit, OnDestroy {
                 },
                 () => {
                     this.jhiAlertService.error('artemisApp.modelingExercise.deleteClusters.error');
+                },
+            );
+        }
+    }
+
+    countModelClusters(exerciseId: number) {
+        if (exerciseId) {
+            this.modelingExerciseService.getNumberOfClusters(exerciseId).subscribe(
+                (res) => {
+                    this.numberOfClusters = res?.body || 0;
+                },
+                () => {
+                    this.jhiAlertService.error('artemisApp.modelingExercise.checkClusters.error');
                 },
             );
         }
