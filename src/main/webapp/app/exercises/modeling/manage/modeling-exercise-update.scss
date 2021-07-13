@@ -1,3 +1,5 @@
-.markdown-editor {
-    height: 350px;
+@import '../../shared/exercise/_exercise-update.scss';
+
+label {
+    @include form-element-font-style();
 }
