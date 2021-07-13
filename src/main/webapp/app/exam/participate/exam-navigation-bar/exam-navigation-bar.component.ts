@@ -5,6 +5,8 @@ import { CustomBreakpointNames } from 'app/shared/breakpoints/breakpoints.servic
 import * as moment from 'moment';
 import { Moment } from 'moment';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { ExamExerciseUpdateService } from 'app/exam/manage/exam-exercise-update.service';
+import { Subscription } from 'rxjs';
 import { ExamParticipationService } from 'app/exam/participate/exam-participation.service';
 
 @Component({
@@ -30,9 +32,20 @@ export class ExamNavigationBarComponent implements OnInit {
     icon: IconProp;
     getExerciseButtonTooltip = this.examParticipationService.getExerciseButtonTooltip;
 
-    constructor(private layoutService: LayoutService, private examParticipationService: ExamParticipationService) {}
+    subscriptionToLiveExamExerciseUpdates: Subscription;
+
+    constructor(private layoutService: LayoutService, private examExerciseUpdateService: ExamExerciseUpdateService, private examParticipationService: ExamParticipationService) {}
 
     ngOnInit(): void {
+        this.subscriptionToLiveExamExerciseUpdates = this.examExerciseUpdateService.currentExerciseIdAndProblemStatement.subscribe((update) => {
+            if (update.problemStatement === '') {
+                // another exercise will only be displayed if the student clicks on the corresponding pop-up notification
+                this.changeExerciseById(update.exerciseId);
+            } else {
+                this.updateExerciseProblemStatementById(update.exerciseId, update.problemStatement);
+            }
+        });
+
         this.layoutService.subscribeToLayoutChanges().subscribe(() => {
             // You will have all matched breakpoints in observerResponse
             if (this.layoutService.isBreakpointActive(CustomBreakpointNames.extraLarge)) {
@@ -73,6 +86,28 @@ export class ExamNavigationBarComponent implements OnInit {
             this.onPageChanged.emit({ overViewChange: true, exercise: undefined, forceSave: false });
         }
         this.setExerciseButtonStatus(this.exerciseIndex);
+    }
+
+    /**
+     * Auxiliary method to call changeExerciseByIndex based on the unique id of the exercise
+     * @param exerciseId the unique identifier of an exercise that stays the same regardless of student exam ordering
+     */
+    changeExerciseById(exerciseId: number) {
+        const foundIndex = this.exercises.findIndex((ex) => ex.id === exerciseId);
+        this.changePage(false, foundIndex, true);
+    }
+
+    /**
+     * Updates the problem statement of an exam exercise during an ongoing exam in real time,
+     * i.e. the student will see the change immediately without the need to reload the page
+     * @param exerciseId the unique exercise that needs to be updated
+     * @param problemStatement the updated problem statement
+     */
+    updateExerciseProblemStatementById(exerciseId: number, problemStatement: string) {
+        if (exerciseId !== -1 && problemStatement != undefined) {
+            const foundIndex = this.exercises.findIndex((ex) => ex.id === exerciseId);
+            this.exercises[foundIndex].problemStatement = problemStatement;
+        }
     }
 
     /**

@@ -9,6 +9,8 @@ import { TranslateTestingModule } from '../../../helpers/mocks/service/mock-tran
 import { ArtemisTestModule } from '../../../test.module';
 import { Submission } from 'app/entities/submission.model';
 import { StudentParticipation } from 'app/entities/participation/student-participation.model';
+import { BehaviorSubject } from 'rxjs';
+import { ExamExerciseUpdate, ExamExerciseUpdateService } from 'app/exam/manage/exam-exercise-update.service';
 import { ExamParticipationService } from 'app/exam/participate/exam-participation.service';
 import { LocalStorageService, SessionStorageService } from 'ngx-webstorage';
 import { MockSyncStorage } from '../../../helpers/mocks/service/mock-sync-storage.service';
@@ -17,11 +19,21 @@ describe('Exam Navigation Bar Component', () => {
     let fixture: ComponentFixture<ExamNavigationBarComponent>;
     let comp: ExamNavigationBarComponent;
 
+    const examExerciseIdAndProblemStatementSubjectMock = new BehaviorSubject<ExamExerciseUpdate>({ exerciseId: -1, problemStatement: '' });
+    const mockExamExerciseUpdateService = {
+        currentExerciseIdAndProblemStatement: examExerciseIdAndProblemStatementSubjectMock.asObservable(),
+    };
+
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ArtemisTestModule, TranslateTestingModule],
             declarations: [ExamNavigationBarComponent, MockComponent(ExamTimerComponent), MockDirective(NgbTooltip)],
-            providers: [ExamParticipationService, { provide: LocalStorageService, useClass: MockSyncStorage }, { provide: SessionStorageService, useClass: MockSyncStorage }],
+            providers: [
+                ExamParticipationService,
+                { provide: ExamExerciseUpdateService, useValue: mockExamExerciseUpdateService },
+                { provide: LocalStorageService, useClass: MockSyncStorage },
+                { provide: SessionStorageService, useClass: MockSyncStorage },
+            ],
         }).compileComponents();
 
         fixture = TestBed.createComponent(ExamNavigationBarComponent);
@@ -204,5 +216,25 @@ describe('Exam Navigation Bar Component', () => {
         const result = comp.getExerciseButtonTooltip(comp.exercises[0]);
 
         expect(result).toEqual('notSubmitted');
+    });
+
+    describe('Exam Exercise Update', () => {
+        const updatedExerciseId = 2;
+        const updatedProblemStatement = 'Updated Problem Statement';
+        const update = { exerciseId: updatedExerciseId, problemStatement: updatedProblemStatement };
+        const navigation = { exerciseId: updatedExerciseId, problemStatement: '' };
+
+        it('should update Exercise Problem Statement', () => {
+            examExerciseIdAndProblemStatementSubjectMock.next(update);
+            const foundIndex = comp.exercises.findIndex((ex) => ex.id === updatedExerciseId);
+            const result = comp.exercises[foundIndex].problemStatement;
+            expect(result).toEqual(updatedProblemStatement);
+        });
+
+        it('should navigate to other Exercise', () => {
+            spyOn(comp, 'changeExerciseById');
+            examExerciseIdAndProblemStatementSubjectMock.next(navigation);
+            expect(comp.changeExerciseById).toHaveBeenCalled();
+        });
     });
 });
