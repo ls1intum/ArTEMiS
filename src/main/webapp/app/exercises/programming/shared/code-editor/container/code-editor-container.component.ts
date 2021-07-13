@@ -29,6 +29,7 @@ import { Feedback } from 'app/entities/feedback.model';
 @Component({
     selector: 'jhi-code-editor-container',
     templateUrl: './code-editor-container.component.html',
+    styleUrls: ['./code-editor-container.component.scss'],
 })
 export class CodeEditorContainerComponent implements ComponentCanDeactivate {
     readonly CommitState = CommitState;
@@ -54,6 +55,9 @@ export class CodeEditorContainerComponent implements ComponentCanDeactivate {
     readOnlyManualFeedback = false;
     @Input()
     highlightDifferences: boolean;
+
+    @Input()
+    collapsed = false;
 
     @Output()
     onResizeEditorInstructions = new EventEmitter<void>();
