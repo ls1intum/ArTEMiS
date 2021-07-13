@@ -13,6 +13,7 @@ import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -63,9 +64,17 @@ public class TextBlock implements Serializable {
     @JsonIgnore
     private Double addedDistance;
 
+    @OneToOne
+    @JsonIgnore
+    private Feedback feedback;
+
     @ManyToOne
     @JsonIgnore
     private TextSubmission submission;
+
+    @ManyToOne
+    @JsonIgnoreProperties("textBlocks")
+    private TextAssessmentKnowledge knowledge;
 
     @ManyToOne
     @JsonIgnore
@@ -162,6 +171,14 @@ public class TextBlock implements Serializable {
         return this;
     }
 
+    public Feedback getFeedbackId() {
+        return feedback;
+    }
+
+    public void setFeedbackId(Feedback feedback) {
+        this.feedback = feedback;
+    }
+
     public void setSubmission(TextSubmission textSubmission) {
         this.submission = textSubmission;
     }
@@ -225,5 +242,13 @@ public class TextBlock implements Serializable {
 
     public void setNumberOfAffectedSubmissions(int numberOfAffectedSubmissions) {
         this.numberOfAffectedSubmissions = numberOfAffectedSubmissions;
+    }
+
+    public TextAssessmentKnowledge getKnowledge() {
+        return knowledge;
+    }
+
+    public void setKnowledge(TextAssessmentKnowledge knowledge) {
+        this.knowledge = knowledge;
     }
 }
