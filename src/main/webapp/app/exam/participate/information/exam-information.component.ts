@@ -24,7 +24,30 @@ export class ExamInformationComponent {
         return this.exam.endDate;
     }
 
-    examOverMultipleDays() {
+    normalWorkingTime(): number | undefined {
+        if (!this.exam || !this.exam.endDate || !this.exam.startDate) {
+            return undefined;
+        }
+        return this.exam.endDate.diff(this.exam.startDate, 'seconds');
+    }
+
+    hasAdditionalWorkingTime(): boolean | undefined {
+        if (!this.exam || !this.exam.endDate || !this.exam.startDate) {
+            return undefined;
+        }
+        if (this.studentExam && this.studentExam.workingTime) {
+            const personalEndDate = moment(this.exam.startDate).add(this.studentExam.workingTime, 'seconds');
+            return personalEndDate.isAfter(this.exam.endDate);
+        }
+        return false;
+    }
+
+    getAdditionalWorkingTime(): number {
+        const personalEndDate = moment(this.exam.startDate).add(this.studentExam.workingTime, 'seconds');
+        return personalEndDate.diff(this.exam.endDate, 'seconds');
+    }
+
+    examOverMultipleDays(): boolean {
         if (!this.exam || !this.exam.startDate || !this.exam.endDate) {
             return false;
         }
