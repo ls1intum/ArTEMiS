@@ -9,13 +9,10 @@ import { createRequestOption } from 'app/shared/util/request-util';
 import { JhiWebsocketService } from 'app/core/websocket/websocket.service';
 import { Exercise, ExerciseType } from 'app/entities/exercise.model';
 import { ProgrammingSubmission } from 'app/entities/programming-submission.model';
-import { getLatestSubmissionResult, setLatestSubmissionResult, SubmissionType } from 'app/entities/submission.model';
+import { getLatestSubmissionResult, setLatestSubmissionResult, Submission, SubmissionType } from 'app/entities/submission.model';
 import { ProgrammingExerciseStudentParticipation } from 'app/entities/participation/programming-exercise-student-participation.model';
 import { findLatestResult } from 'app/shared/util/utils';
 import { ProgrammingExerciseParticipationService } from 'app/exercises/programming/manage/services/programming-exercise-participation.service';
-import { ProgrammingAssessmentRepoExportService, RepositoryExportOptions } from 'app/exercises/programming/assess/repo-export/programming-assessment-repo-export.service';
-import { OrionConnectorService } from 'app/shared/orion/orion-connector.service';
-import { JhiAlertService } from 'ng-jhipster';
 
 export enum ProgrammingSubmissionState {
     // The last submission of participation has a result.
@@ -49,7 +46,6 @@ export interface IProgrammingSubmissionService {
     triggerInstructorBuildForParticipationsOfExercise: (exerciseId: number, participationIds: number[]) => Observable<void>;
     unsubscribeAllWebsocketTopics: (exercise: Exercise) => void;
     unsubscribeForLatestSubmissionOfParticipation: (participationId: number) => void;
-    downloadSubmissionInOrion: (exerciseId: number, submissionId: number, correctionRound: number) => void;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -84,9 +80,6 @@ export class ProgrammingSubmissionService implements IProgrammingSubmissionServi
         private http: HttpClient,
         private participationWebsocketService: ParticipationWebsocketService,
         private participationService: ProgrammingExerciseParticipationService,
-        private orionConnectorService: OrionConnectorService,
-        private repositoryExportService: ProgrammingAssessmentRepoExportService,
-        private jhiAlertService: JhiAlertService,
     ) {}
 
     ngOnDestroy(): void {
@@ -496,6 +489,19 @@ export class ProgrammingSubmissionService implements IProgrammingSubmissionServi
     }
 
     /**
+     * Calculates the status of a submission by inspecting the result
+     * @param submission Submission which to check
+     * @param correctionRound for which to get status
+     */
+    public calculateSubmissionStatus(submission: Submission, correctionRound = 0) {
+        const tmpResult = submission.results?.[correctionRound];
+        if (tmpResult && tmpResult!.completionDate && Result.isManualResult(tmpResult!)) {
+            return 'DONE';
+        }
+        return 'DRAFT';
+    }
+
+    /**
      * Cache a retrieved pending submission and setup the websocket connections and timer.
      *
      * @param submissionToBeProcessed to cache and use for the websocket subscriptions
@@ -658,40 +664,5 @@ export class ProgrammingSubmissionService implements IProgrammingSubmissionServi
                 this.websocketService.unsubscribe(submissionTopic);
             }
         }
-    }
-
-    /**
-     * Locks the given submission, exports it, transforms it to base64, and sends it to Orion
-     *
-     * @param exerciseId id of the exercise the submission belongs to
-     * @param submissionId id of the submission to send to Orion
-     * @param correctionRound correction round
-     */
-    downloadSubmissionInOrion(exerciseId: number, submissionId: number, correctionRound = 0) {
-        this.orionConnectorService.isCloning(true);
-        const exportOptions: RepositoryExportOptions = {
-            exportAllParticipants: false,
-            filterLateSubmissions: false,
-            addParticipantName: false,
-            combineStudentCommits: false,
-            anonymizeStudentCommits: true,
-            normalizeCodeStyle: false,
-            hideStudentNameInZippedFolder: true,
-        };
-        this.lockAndGetProgrammingSubmissionParticipation(submissionId, correctionRound).subscribe((programmingSubmission) => {
-            this.repositoryExportService.exportReposByParticipations(exerciseId, [programmingSubmission.participation!.id!], exportOptions).subscribe((response) => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const result = reader.result as string;
-                    // remove prefix
-                    const base64data = result.substr(result.indexOf(',') + 1);
-                    this.orionConnectorService.downloadSubmission(submissionId, correctionRound, base64data);
-                };
-                reader.onerror = () => {
-                    this.jhiAlertService.error('artemisApp.assessmentDashboard.orion.downloadFailed');
-                };
-                reader.readAsDataURL(response.body!);
-            });
-        });
     }
 }
